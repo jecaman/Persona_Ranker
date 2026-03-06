@@ -1,0 +1,18 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+/coverage
+*.tsbuildinfo
