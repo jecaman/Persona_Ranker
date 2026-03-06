@@ -1,9 +1,8 @@
 "use client";
 
-// useEffect: ejecuta código cuando el componente aparece en pantalla
-// useState: variables que, al cambiar, actualizan la pantalla automáticamente
 import { useEffect, useState } from "react";
 import { LeadsTable } from "@/components/leads-table";
+import { createBrowserClient } from "@/lib/supabase";
 import type { Lead } from "@/lib/types";
 
 export default function Home() {
@@ -11,16 +10,19 @@ export default function Home() {
   const [isRanking, setIsRanking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Carga los leads al montar el componente (equivalente a una query inicial)
-  // El array vacío [] al final significa "ejecutar solo una vez al cargar"
   useEffect(() => {
     fetchLeads();
   }, []);
 
+  // Fetch directo desde el navegador usando la anon key (pública)
+  // No necesitamos pasar por un API route para leer datos
   async function fetchLeads() {
-    const res = await fetch("/api/leads");
-    const data = await res.json();
-    setLeads(data);
+    const supabase = createBrowserClient();
+    const { data } = await supabase
+      .from("leads")
+      .select("*")
+      .order("rank", { ascending: true, nullsFirst: false });
+    setLeads(data ?? []);
   }
 
   async function runRanking() {
