@@ -1,3 +1,7 @@
+// Fuerza que esta ruta se ejecute en el servidor bajo demanda
+// Sin esto, Next.js intenta pre-renderizarla en el build (sin env vars disponibles)
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 
