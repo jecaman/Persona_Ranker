@@ -140,6 +140,9 @@ A `POST /api/ingest` endpoint accepts a multipart CSV upload, validates the colu
 
 ### Added beyond the spec
 
+**AI reasoning per lead**
+The table includes a reasoning column with a one-sentence explanation from the model for every score — e.g. *"VP of Sales at a startup, ideal fit"* or *"Finance role at Enterprise, hard exclusion"*. This wasn't required but makes the ranking auditable: you can spot-check why a lead scored high or low without re-running anything or trusting the number blindly.
+
 **Re-rank All**
 A "Re-rank All" button resets `ranked_at`, `score`, `rank`, `global_rank`, `reasoning`, and `is_relevant` to null for all leads, then re-runs the full ranking pipeline. Useful when the persona spec changes or you want to re-evaluate with a different model.
 
