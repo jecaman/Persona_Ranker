@@ -125,18 +125,26 @@ export async function POST(request: NextRequest) {
 
   // Dentro de cada empresa, ordenamos por score y asignamos rank 1, 2, 3...
   // Array.from convierte el iterador del Map en un array normal
-  type RankedResult = { id: string; score: number; reasoning: string; is_relevant: boolean; rank: number; ranked_at: string };
+  type RankedResult = { id: string; score: number; reasoning: string; is_relevant: boolean; rank: number; global_rank: number; ranked_at: string };
   const resultsWithRank: RankedResult[] = [];
 
+  // Rank por empresa: ROW_NUMBER() OVER (PARTITION BY account_name ORDER BY score DESC)
   Array.from(byCompany.values()).forEach((companyResults) => {
     companyResults.sort((a, b) => b.score - a.score);
     companyResults.forEach((result, index) => {
       resultsWithRank.push({
         ...result,
         rank: index + 1,
+        global_rank: 0, // placeholder, se calcula abajo
         ranked_at: new Date().toISOString(),
       });
     });
+  });
+
+  // Rank global: ROW_NUMBER() OVER (ORDER BY score DESC) — sin agrupar por empresa
+  resultsWithRank.sort((a, b) => b.score - a.score);
+  resultsWithRank.forEach((result, index) => {
+    result.global_rank = index + 1;
   });
 
   // 5. Guardar los resultados en Supabase

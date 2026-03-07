@@ -16,7 +16,8 @@ create table if not exists leads (
 
   -- resultados del ranking (NULL hasta que se rankea)
   score                 numeric,       -- 0 a 100
-  rank                  integer,       -- posición global
+  rank                  integer,       -- posición dentro de su empresa (1 = mejor de la empresa)
+  global_rank           integer,       -- posición entre todos los leads (1 = mejor de todos)
   reasoning             text,          -- explicación del modelo
   is_relevant           boolean,       -- ¿vale la pena contactar?
   ranked_at             timestamptz,   -- cuándo se rankeó

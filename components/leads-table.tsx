@@ -18,6 +18,10 @@ const columns = [
     header: "Rank",
     cell: (info) => info.getValue() ?? "—",
   }),
+  col.accessor("global_rank", {
+    header: "Global Rank",
+    cell: (info) => info.getValue() ?? "—",
+  }),
   col.accessor((row) => `${row.lead_first_name ?? ""} ${row.lead_last_name ?? ""}`.trim(), {
     id: "name",
     header: "Name",

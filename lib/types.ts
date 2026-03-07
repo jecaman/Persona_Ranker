@@ -11,6 +11,7 @@ export type Lead = {
   // ranking results
   score: number | null;
   rank: number | null;
+  global_rank: number | null;
   reasoning: string | null;
   is_relevant: boolean | null;
   ranked_at: string | null;
