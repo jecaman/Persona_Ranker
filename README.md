@@ -2,7 +2,7 @@
 
 Given a list of sales leads, qualify and rank them against an ideal customer persona using AI — and surface the best-fit contacts per company.
 
-**Live demo:** _[Vercel URL]_
+**Live demo:** https://jecamanpersonaranker.vercel.app/
 
 ---
 
