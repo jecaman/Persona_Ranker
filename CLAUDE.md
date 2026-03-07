@@ -2,17 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Perfil del desarrollador
-
-El desarrollador es programador junior con experiencia en ingeniería de datos, Python, SQL y bases de datos. JavaScript/TypeScript y el ecosistema frontend (Next.js, React) son áreas más nuevas para él.
-
-Por eso:
-- Explica siempre los conceptos de Next.js, React y TypeScript que no son obvios viniendo de Python/SQL
-- Cuando escribas código nuevo, explica brevemente qué hace cada parte y por qué se hace así
-- Conecta conceptos nuevos con equivalentes conocidos cuando sea posible (ej: "esto es como un JOIN en SQL", "esto es como un decorador en Python")
-- No asumas familiaridad con patrones frontend como hooks, server components, o el App Router
-- Avanza paso a paso, un concepto a la vez
-
 ## Project Overview
 
 This is the **Throxy Persona Ranker** — a Next.js full-stack app that ingests a CSV of ~200 sales leads, runs an AI ranking process against an ideal customer persona spec, and surfaces the best-fit contacts per company in a results table.
