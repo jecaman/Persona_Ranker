@@ -9,6 +9,7 @@ export default function Home() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isRanking, setIsRanking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [topN, setTopN] = useState(3);
 
   useEffect(() => {
     fetchLeads();
@@ -36,7 +37,12 @@ export default function Home() {
     if (!res.ok) {
       setMessage(`Error: ${data.error}`);
     } else {
-      setMessage(`✓ ${data.ranked} leads ranked. ${data.failed_batches > 0 ? `${data.failed_batches} batches failed.` : ""}`);
+      const { ranked, failed_batches, usage } = data;
+      const stats = usage
+        ? ` · ${(usage.input_tokens + usage.output_tokens).toLocaleString()} tokens · ~$${usage.estimated_cost_usd}`
+        : "";
+      const warn = failed_batches > 0 ? ` · ${failed_batches} batches failed` : "";
+      setMessage(`✓ ${ranked} leads ranked${stats}${warn}`);
       await fetchLeads();
     }
 
@@ -67,6 +73,40 @@ export default function Home() {
     e.target.value = "";
   }
 
+  function exportCsv() {
+    // Tomamos los top N por empresa: leads con rank <= topN y is_relevant = true
+    const filtered = leads
+      .filter((l) => l.rank !== null && l.rank <= topN && l.is_relevant)
+      .sort((a, b) =>
+        (a.account_name ?? "").localeCompare(b.account_name ?? "") ||
+        (a.rank ?? 0) - (b.rank ?? 0)
+      );
+
+    const headers = ["global_rank", "rank", "score", "first_name", "last_name", "title", "company", "industry", "size"];
+    const rows = filtered.map((l) => [
+      l.global_rank,
+      l.rank,
+      l.score,
+      l.lead_first_name ?? "",
+      l.lead_last_name ?? "",
+      `"${(l.lead_job_title ?? "").replace(/"/g, '""')}"`,
+      `"${(l.account_name ?? "").replace(/"/g, '""')}"`,
+      `"${(l.account_industry ?? "").replace(/"/g, '""')}"`,
+      l.account_employee_range ?? "",
+    ]);
+
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+    // Creamos un fichero en memoria y lanzamos la descarga — equivalente a escribir un fichero en disco
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `top${topN}_leads.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const rankedCount = leads.filter((l) => l.ranked_at !== null).length;
 
   return (
@@ -82,18 +122,39 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {/* Input de archivo oculto — el label actúa como botón */}
-            <label className="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium
+            <label className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium
                               hover:bg-gray-200 cursor-pointer transition-colors text-sm">
               Upload CSV
               <input type="file" accept=".csv" className="hidden" onChange={uploadCsv} />
             </label>
 
+            {/* Export: input numérico + botón */}
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-gray-500">Top</span>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={topN}
+                onChange={(e) => setTopN(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-12 px-2 py-2 text-sm border border-gray-300 rounded-lg text-center"
+              />
+              <button
+                onClick={exportCsv}
+                disabled={rankedCount === 0}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm
+                           hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Export CSV
+              </button>
+            </div>
+
             <button
               onClick={() => runRanking(false)}
               disabled={isRanking}
-              className="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium
                          hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
                          transition-colors"
             >
@@ -103,7 +164,7 @@ export default function Home() {
             <button
               onClick={() => runRanking(true)}
               disabled={isRanking}
-              className="px-5 py-2 bg-orange-500 text-white rounded-lg font-medium
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium
                          hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed
                          transition-colors"
             >

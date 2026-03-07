@@ -19,6 +19,10 @@ import type { Lead } from "@/lib/types";
 
 const BATCH_SIZE = 15;
 
+// Precios de Claude Haiku 4.5 ($ por millón de tokens)
+const PRICE_INPUT_PER_M  = 1.00;
+const PRICE_OUTPUT_PER_M = 5.00;
+
 // NextRequest nos permite leer los query params de la URL
 // Ej: POST /api/rank?limit=10 → solo rankea 10 leads (útil para pruebas)
 import { NextRequest } from "next/server";
@@ -78,6 +82,8 @@ export async function POST(request: NextRequest) {
   const systemPrompt = buildSystemPrompt(personaSpec);
 
   const batchErrors: string[] = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   for (const batch of batches) {
     try {
@@ -89,6 +95,9 @@ export async function POST(request: NextRequest) {
         messages: [{ role: "user", content: buildUserMessage(leadsForPrompt) }],
       });
 
+      totalInputTokens  += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
+
       // response.content[0] es el primer bloque de texto de la respuesta
       const text = response.content[0].type === "text" ? response.content[0].text : "";
       const results = parseRankingResponse(text);
@@ -98,7 +107,6 @@ export async function POST(request: NextRequest) {
       console.error(`Batch fallido:`, err);
       batchErrors.push(msg);
       failedBatches++;
-      // Continuamos con el siguiente batch aunque este haya fallado
     }
   }
 
@@ -157,9 +165,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
+  const estimatedCostUsd =
+    (totalInputTokens / 1_000_000) * PRICE_INPUT_PER_M +
+    (totalOutputTokens / 1_000_000) * PRICE_OUTPUT_PER_M;
+
   return NextResponse.json({
     ranked: allResults.length,
     failed_batches: failedBatches,
     total_leads: leads.length,
+    usage: {
+      input_tokens: totalInputTokens,
+      output_tokens: totalOutputTokens,
+      estimated_cost_usd: Math.round(estimatedCostUsd * 10000) / 10000, // 4 decimales
+    },
   });
 }
