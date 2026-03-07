@@ -106,15 +106,17 @@ We tested newer models (claude-haiku-4-5) but ran into frequent 529 overload err
 
 ## Tradeoffs
 
-**No streaming / real-time progress.** The ranking button shows a spinner until all batches complete. With parallel processing this is fast enough (~5–7s) that streaming wasn't necessary for the MVP. For a production system with thousands of leads, streaming progress would be the next step.
+These are deliberate cuts made to keep the project within MVP scope. Each one has a clear path to production.
 
-**No authentication.** This is an internal demo tool. Adding auth would be the obvious next step before any real deployment.
+**No authentication.** Any person with the URL can trigger a ranking run or upload a CSV. For an internal tool evaluated by a small team this is fine, but it would be the first thing to add before any real deployment.
 
-**Round scores from the model.** LLMs tend to produce scores in multiples of 5 or 10 (e.g., 75, 80, 65). This is a known characteristic of how language models output numbers, not a bug. The relative ordering is still meaningful.
+**Fixed CSV format.** The CSV upload expects a fixed set of columns matching the provided `leads.csv`. If a CSV with different column names is uploaded, it fails validation. A production version would include a column-mapping step where the user matches their CSV headers to the expected fields — meaningful work that was out of scope here.
 
-**Single persona spec.** The app currently supports one persona spec at a time (the file in `data/`). Supporting multiple specs or per-run specs would require storing them in the database and letting the user select one at runtime.
+**Single persona spec.** The persona is hardcoded as a file in the repo. There's no way to switch personas from the UI or run the same leads against multiple personas. In a real product you'd store specs in the database and let users manage them.
 
-**Fixed CSV format.** The CSV upload expects a specific set of columns (`account_name`, `lead_first_name`, `lead_last_name`, `lead_job_title`, `account_domain`, `account_employee_range`, `account_industry`). Uploading a CSV with different column names will fail validation. Supporting arbitrary column mappings would require a UI for the user to map their columns to the expected fields — a meaningful piece of work that was out of scope for the MVP.
+**No ranking history.** Re-ranking overwrites the previous results. There's no way to compare how a lead scored across different runs or persona specs. A production system would store each ranking run separately.
+
+**No real-time progress.** The ranking button shows a spinner until all batches finish. With parallel processing this takes ~5–7 seconds for 200 leads, which is acceptable for an MVP. For larger datasets, showing per-batch progress as results come in would be a meaningful UX improvement.
 
 ---
 
