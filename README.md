@@ -82,9 +82,17 @@ Instead, rank is computed deterministically server-side: sort by score descendin
 - **Co. Rank** — position within the company (`ROW_NUMBER() OVER (PARTITION BY account_name ORDER BY score DESC)`). Directly answers "who is the best contact at this company?"
 - **Global Rank** — position across all leads (`ROW_NUMBER() OVER (ORDER BY score DESC)`). Useful for cross-company comparison.
 
-### is_relevant as a hard gate
+### Exclusion handling: hard vs soft
 
-Rank is ordinal — it just says who is better relative to others. But a lead ranked #1 at a company could still be irrelevant (e.g., the only contact is an HR manager). `is_relevant` is a binary gate: `true` if score ≥ 30. The CSV export only includes relevant leads, so irrelevant contacts are never surfaced in campaigns regardless of their rank.
+The persona spec defines two types of contacts to avoid, and we handle them differently:
+
+**Hard exclusions** are roles that should never be contacted under any circumstances — CFO, CTO, HR, Legal, Customer Success, Product. These get `score = 0` and `is_relevant = false` immediately, regardless of any other signal.
+
+Importantly, some exclusions are **context-dependent**. A CEO is the ideal contact at a startup (5/5 priority) but a hard exclusion at Enterprise — they're too far removed from outbound execution. The model evaluates title *in combination with company size*, which is why we send both fields in every batch.
+
+**Soft exclusions** are roles that are deprioritized but not disqualified — BDRs, Account Executives, CMOs, Advisors. These leads receive a score penalty of 20–30 points. They may appear in the table but will rank low within their company, and are typically filtered out by the top-N export.
+
+**`is_relevant`** is the binary gate that separates these two worlds: `true` if `score ≥ 30`, `false` otherwise. A lead can be ranked #1 at their company and still be irrelevant if they're the only contact available and happen to be in HR. The CSV export filters to `is_relevant = true`, ensuring that genuinely disqualified contacts are never surfaced in campaigns regardless of rank.
 
 ### persona_spec.md in the repo
 
@@ -105,6 +113,8 @@ We tested newer models (claude-haiku-4-5) but ran into frequent 529 overload err
 **Round scores from the model.** LLMs tend to produce scores in multiples of 5 or 10 (e.g., 75, 80, 65). This is a known characteristic of how language models output numbers, not a bug. The relative ordering is still meaningful.
 
 **Single persona spec.** The app currently supports one persona spec at a time (the file in `data/`). Supporting multiple specs or per-run specs would require storing them in the database and letting the user select one at runtime.
+
+**Fixed CSV format.** The CSV upload expects a specific set of columns (`account_name`, `lead_first_name`, `lead_last_name`, `lead_job_title`, `account_domain`, `account_employee_range`, `account_industry`). Uploading a CSV with different column names will fail validation. Supporting arbitrary column mappings would require a UI for the user to map their columns to the expected fields — a meaningful piece of work that was out of scope for the MVP.
 
 ---
 
