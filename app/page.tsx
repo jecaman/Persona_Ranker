@@ -139,7 +139,7 @@ export default function Home() {
                 max={20}
                 value={topN}
                 onChange={(e) => setTopN(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-12 px-2 py-2 text-sm border border-gray-300 rounded-lg text-center"
+                className="w-16 px-2 py-2 text-sm border border-gray-300 rounded-lg text-center"
               />
               <button
                 onClick={exportCsv}
