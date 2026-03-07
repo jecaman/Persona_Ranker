@@ -40,6 +40,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No se encontró data/persona_spec.md" }, { status: 500 });
   }
 
+  // Si se pasa ?force=true, reseteamos todos los leads para re-rankear desde cero
+  // Equivalente SQL: UPDATE leads SET ranked_at = NULL, score = NULL, rank = NULL, ...
+  const force = request.nextUrl.searchParams.get("force") === "true";
+  if (force) {
+    const { error: resetError } = await supabase
+      .from("leads")
+      .update({ ranked_at: null, score: null, rank: null, reasoning: null, is_relevant: null })
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // condición siempre true para afectar todas las filas
+    if (resetError) {
+      return NextResponse.json({ error: resetError.message }, { status: 500 });
+    }
+  }
+
   // 2. Obtener los leads sin rankear de Supabase
   // .is("ranked_at", null) es equivalente a WHERE ranked_at IS NULL en SQL
   let query = supabase.from("leads").select("*").is("ranked_at", null);
@@ -64,6 +77,8 @@ export async function POST(request: NextRequest) {
 
   const systemPrompt = buildSystemPrompt(personaSpec);
 
+  const batchErrors: string[] = [];
+
   for (const batch of batches) {
     try {
       const leadsForPrompt = buildLeadsForPrompt(batch);
@@ -79,14 +94,16 @@ export async function POST(request: NextRequest) {
       const results = parseRankingResponse(text);
       allResults.push(...results);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error(`Batch fallido:`, err);
+      batchErrors.push(msg);
       failedBatches++;
       // Continuamos con el siguiente batch aunque este haya fallado
     }
   }
 
   if (allResults.length === 0) {
-    return NextResponse.json({ error: "Todos los batches fallaron" }, { status: 500 });
+    return NextResponse.json({ error: "Todos los batches fallaron", details: batchErrors }, { status: 500 });
   }
 
   // 4. Calcular el rank POR EMPRESA
