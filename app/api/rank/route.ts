@@ -19,9 +19,9 @@ import type { Lead } from "@/lib/types";
 
 const BATCH_SIZE = 15;
 
-// Precios de Claude Haiku 4.5 ($ por millón de tokens)
-const PRICE_INPUT_PER_M  = 1.00;
-const PRICE_OUTPUT_PER_M = 5.00;
+// Precios de Claude 3 Haiku ($ por millón de tokens)
+const PRICE_INPUT_PER_M  = 0.25;
+const PRICE_OUTPUT_PER_M = 1.25;
 
 // NextRequest nos permite leer los query params de la URL
 // Ej: POST /api/rank?limit=10 → solo rankea 10 leads (útil para pruebas)
