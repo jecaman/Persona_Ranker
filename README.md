@@ -67,6 +67,8 @@ Sending all ~200 leads in a single API call risks hitting output token limits an
 
 We batch 15 leads per call (~14 batches for 200 leads). Each batch gets the full persona spec in the system prompt so the model always has the complete context.
 
+Each lead is stripped down to only the fields relevant for scoring: `name`, `title`, `company`, `company_size`, `industry`. Fields like `account_domain` are omitted — they add tokens without helping the model make a better decision. The persona spec repeats across every batch (~2,000 tokens × 14 batches), so keeping the lead payload lean directly reduces cost.
+
 ### Parallel batch processing
 
 Initially batches ran sequentially, which took ~70 seconds for 200 leads and exceeded Vercel's 60-second serverless timeout. Switching to `Promise.all` runs all batches simultaneously and finishes in ~5–7 seconds.
@@ -88,7 +90,7 @@ The persona spec defines two types of contacts to avoid, and we handle them diff
 
 **Hard exclusions** are roles that should never be contacted under any circumstances — CFO, CTO, HR, Legal, Customer Success, Product. These get `score = 0` and `is_relevant = false` immediately, regardless of any other signal.
 
-Importantly, some exclusions are **context-dependent**. A CEO is the ideal contact at a startup (5/5 priority) but a hard exclusion at Enterprise — they're too far removed from outbound execution. The model evaluates title *in combination with company size*, which is why we send both fields in every batch.
+Importantly, some exclusions are **context-dependent**. A CEO is the ideal contact at a startup (5/5 priority) but a hard exclusion at Enterprise — they're too far removed from outbound execution. This is why we don't pre-filter exclusions in code: parsing context-dependent rules from the spec would be brittle and would break for any other persona. Instead, the prompt instructs Claude to evaluate title *in combination with company size*, letting the model handle the nuance naturally.
 
 **Soft exclusions** are roles that are deprioritized but not disqualified — BDRs, Account Executives, CMOs, Advisors. These leads receive a score penalty of 20–30 points. They may appear in the table but will rank low within their company, and are typically filtered out by the top-N export.
 
